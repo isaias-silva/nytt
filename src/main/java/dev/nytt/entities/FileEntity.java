@@ -13,7 +13,11 @@ public class FileEntity extends PanacheEntityBase {
     public UUID id;
     public String externalId;
 
+
+    public FileEntity() {
+    }
     public FileEntity(String externalId) {
         this.externalId=externalId;
+
     }
 }
