@@ -8,61 +8,84 @@ import jakarta.enterprise.context.ApplicationScoped;
 import java.io.File;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.util.Random;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 
 @ApplicationScoped
 public class FileService {
 
-    private Logger LOG;
-    private final String directory = "./uploads/";
+    private final Logger LOG;
+    private static final String directory = "./uploads/";
 
     public FileService() {
         this.LOG = Logger.getLogger(FileService.class.getName());
     }
 
-    public FileEntity createFile(FileUploadDto dto) throws HttpCustomException {
+    public FileEntity createFileByUpload(FileUploadDto dto) throws HttpCustomException {
 
         if (dto.fileUpload() == null) {
             throw new HttpCustomException(400, "file is required");
         }
-        FileEntity fileExists=getFile(dto.externalId());
-        if(fileExists!=null){
+        FileEntity fileExists = getFileEntity(dto.externalId());
+
+        if (fileExists != null) {
             throw new HttpCustomException(400, "file already stored");
         }
-        processFile(dto.externalId(), dto.fileUpload().uploadedFile().toFile(), dto.fileUpload().contentType());
+        File file = dto.fileUpload().uploadedFile().toFile();
+        String fileName = generateFileName(dto.externalId(), dto.fileUpload().contentType());
+        processFile(fileName, file);
 
-        FileEntity file = new FileEntity(dto.externalId());
-        FileEntity.persist(file);
-        return file;
+        FileEntity fileEntity = new FileEntity(dto.externalId(), fileName);
+
+        FileEntity.persist(fileEntity);
+
+        return fileEntity;
 
 
     }
 
-    public FileEntity getFile(String externalId) {
+    public FileEntity getFileEntity(String externalId) {
 
         return FileEntity.find("externalId", externalId).firstResult();
     }
 
-    private void processFile(String externalId, File file, String contentType) throws HttpCustomException {
-        LOG.info(String.format("process file uploaded %s", contentType));
+    public File getFile(String externalId) throws HttpCustomException {
+        FileEntity fileEntity = FileEntity.find("externalId", externalId).firstResult();
+        if (fileEntity == null) {
+            throw new HttpCustomException(404, "file not found");
+        }
         try {
+            Path uploadPath = getUploadPath();
+            File file = new File(uploadPath.toString(), fileEntity.fileName);
 
-            String[] contentInfo = contentType.split("/");
-            String fileType = getFileType(contentInfo[0]);
-
-            if (fileType == null) {
-                throw new IOException("file type not supported");
+            if(!file.exists()){
+                throw new HttpCustomException(404,"file not found");
             }
+            return file;
+
+        } catch (IOException e) {
+            throw new HttpCustomException(500, e.getMessage());
+        }catch (HttpCustomException e){
+            throw new HttpCustomException(e.getStatus(), e.getMessage());
+        }
+    }
+
+
+    private void processFile(String fileName, File file) throws HttpCustomException {
+
+        try {
+            LOG.info(String.format("process file --- %s", fileName));
             byte[] buff = Files.readAllBytes(file.toPath());
-            Files.write(getUploadPath().resolve(String.format("%s.%s", externalId, fileType)), buff);
+            Files.write(getUploadPath().resolve(fileName), buff);
 
         } catch (Exception e) {
-            throw new HttpCustomException(400,e.getMessage());
+            throw new HttpCustomException(400, e.getMessage());
         }
     }
 
@@ -75,15 +98,13 @@ public class FileService {
         return targetDirPath;
     }
 
-    private String getFileType(String type) {
-        return switch (type) {
-            case "audio" -> "mp3";
-            case "video" -> "mp4";
-            case "image" -> "png";
-            case "document" -> "pdf";
-            default -> null;
-        };
-    }
+    private String generateFileName(String externalId, String mimeType) {
 
+        String type = mimeType.split("/")[1];
+        String name = (externalId + UUID.randomUUID()).trim().replace(" ", "-");
+
+        return String.format("%s.%s", name, type);
+
+    }
 
 }

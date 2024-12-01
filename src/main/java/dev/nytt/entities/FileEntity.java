@@ -12,12 +12,13 @@ public class FileEntity extends PanacheEntityBase {
    @GeneratedValue(strategy = GenerationType.UUID)
     public UUID id;
     public String externalId;
-
+    public String fileName;
 
     public FileEntity() {
     }
-    public FileEntity(String externalId) {
+    public FileEntity(String externalId,String fileName) {
         this.externalId=externalId;
+        this.fileName=fileName;
 
     }
 }

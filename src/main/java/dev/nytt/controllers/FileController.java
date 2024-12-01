@@ -12,6 +12,10 @@ import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+
 
 @Path("/file")
 @Produces(MediaType.APPLICATION_JSON)
@@ -33,12 +37,14 @@ public class FileController {
                                @RestForm("externalId") String externalId) throws HttpCustomException {
 
         FileUploadDto dto= new FileUploadDto(externalId,file);
-        return Response.ok(fileService.createFile(dto)).build();
+        return Response.ok(fileService.createFileByUpload(dto)).build();
     }
 
     @GET
     @Transactional
-    public Response getFile(@QueryParam("id") final String fileId) {
-        return Response.ok(fileService.getFile(fileId)).build();
+    public Response getFile(@QueryParam("id") final String fileId) throws HttpCustomException, IOException {
+        File file=fileService.getFile(fileId);
+        String mimeType= Files.probeContentType(file.toPath());
+        return Response.ok(file).type(mimeType).build();
     }
 }
