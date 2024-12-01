@@ -2,6 +2,7 @@ package dev.nytt.controllers;
 
 
 import dev.nytt.dto.FileUploadDto;
+import dev.nytt.exceptions.HttpCustomException;
 import dev.nytt.services.FileService;
 
 import jakarta.transaction.Transactional;
@@ -10,8 +11,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
-
-import java.io.IOException;
 
 
 @Path("/file")
@@ -31,7 +30,7 @@ public class FileController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
 
     public Response createFile(@RestForm("file") FileUpload file,
-                               @RestForm("externalId") String externalId) throws IOException {
+                               @RestForm("externalId") String externalId) throws HttpCustomException {
 
         FileUploadDto dto= new FileUploadDto(externalId,file);
         return Response.ok(fileService.createFile(dto)).build();
