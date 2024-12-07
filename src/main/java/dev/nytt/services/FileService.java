@@ -1,18 +1,17 @@
 package dev.nytt.services;
 
-import dev.nytt.dto.FileUploadDto;
+import dev.nytt.dto.FileDto;
 import dev.nytt.entities.FileEntity;
 import dev.nytt.exceptions.HttpCustomException;
+import io.netty.util.internal.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.io.File;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Random;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -27,22 +26,21 @@ public class FileService {
         this.LOG = Logger.getLogger(FileService.class.getName());
     }
 
-    public FileEntity createFileByUpload(FileUploadDto dto) throws HttpCustomException {
+    public FileEntity createFile(FileDto dto) throws HttpCustomException {
 
-        if (dto.fileUpload() == null) {
-            throw new HttpCustomException(400, "file is required");
+        if(StringUtil.isNullOrEmpty(dto.externalId())){
+            throw new HttpCustomException(400, "external id is required");
+
         }
         FileEntity fileExists = getFileEntity(dto.externalId());
-
         if (fileExists != null) {
             throw new HttpCustomException(400, "file already stored");
         }
-        File file = dto.fileUpload().uploadedFile().toFile();
-        String fileName = generateFileName(dto.externalId(), dto.fileUpload().contentType());
-        processFile(fileName, file);
+
+        String fileName = generateFileName(dto.externalId(), dto.mimetype());
+        processFile(fileName, dto.file());
 
         FileEntity fileEntity = new FileEntity(dto.externalId(), fileName);
-
         FileEntity.persist(fileEntity);
 
         return fileEntity;
@@ -64,18 +62,17 @@ public class FileService {
             Path uploadPath = getUploadPath();
             File file = new File(uploadPath.toString(), fileEntity.fileName);
 
-            if(!file.exists()){
-                throw new HttpCustomException(404,"file not found");
+            if (!file.exists()) {
+                throw new HttpCustomException(404, "file not found");
             }
             return file;
 
         } catch (IOException e) {
             throw new HttpCustomException(500, e.getMessage());
-        }catch (HttpCustomException e){
+        } catch (HttpCustomException e) {
             throw new HttpCustomException(e.getStatus(), e.getMessage());
         }
     }
-
 
     private void processFile(String fileName, File file) throws HttpCustomException {
 

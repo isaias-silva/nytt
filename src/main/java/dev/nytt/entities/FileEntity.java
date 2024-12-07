@@ -17,6 +17,7 @@ public class FileEntity extends PanacheEntityBase {
     public FileEntity() {
     }
     public FileEntity(String externalId,String fileName) {
+
         this.externalId=externalId;
         this.fileName=fileName;
 

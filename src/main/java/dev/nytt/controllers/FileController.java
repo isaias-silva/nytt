@@ -1,10 +1,9 @@
 package dev.nytt.controllers;
 
 
-import dev.nytt.dto.FileUploadDto;
+import dev.nytt.dto.FileDto;
 import dev.nytt.exceptions.HttpCustomException;
 import dev.nytt.services.FileService;
-
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -36,15 +35,19 @@ public class FileController {
     public Response createFile(@RestForm("file") FileUpload file,
                                @RestForm("externalId") String externalId) throws HttpCustomException {
 
-        FileUploadDto dto= new FileUploadDto(externalId,file);
-        return Response.ok(fileService.createFileByUpload(dto)).build();
+        if (file == null) {
+            throw new HttpCustomException(400, "file is required");
+        }
+        FileDto dto = new FileDto(externalId, file.uploadedFile().toFile(), file.contentType());
+
+        return Response.ok(fileService.createFile(dto)).build();
     }
 
     @GET
     @Transactional
     public Response getFile(@QueryParam("id") final String fileId) throws HttpCustomException, IOException {
-        File file=fileService.getFile(fileId);
-        String mimeType= Files.probeContentType(file.toPath());
+        File file = fileService.getFile(fileId);
+        String mimeType = Files.probeContentType(file.toPath());
         return Response.ok(file).type(mimeType).build();
     }
 }
