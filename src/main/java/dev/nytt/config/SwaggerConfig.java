@@ -8,7 +8,7 @@ import org.eclipse.microprofile.openapi.annotations.info.License;
 
 @OpenAPIDefinition(
         info = @Info(
-                title = "Nytt",
+                title = "Nytt files",
                 version = "1.0",
                 description = "api para processamento e disponibilização de arquivos.",
                 contact = @Contact(

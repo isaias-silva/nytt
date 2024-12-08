@@ -1,0 +1,18 @@
+services:
+  database:
+    image: mysql
+    restart: always
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASS}
+      MYSQL_DATABASE: ${DB_NAME}
+    volumes:
+      - ./database:/var/lib/mysql
+    ports:
+      - "${DB_PORT}:3306"
+    networks:
+      - nytt
+
+networks:
+  nytt:
+    driver: bridge
