@@ -8,6 +8,7 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 
@@ -29,6 +30,7 @@ public class FileController {
     FileService fileService;
 
     @POST
+    @Operation(summary = "upload de arquivo")
     @Transactional
     @Consumes(MediaType.MULTIPART_FORM_DATA)
 
@@ -44,6 +46,7 @@ public class FileController {
     }
 
     @GET
+    @Operation(summary = "retorna arquivo via external Id")
     @Transactional
     public Response getFile(@QueryParam("id") final String fileId) throws HttpCustomException, IOException {
         File file = fileService.getFile(fileId);
