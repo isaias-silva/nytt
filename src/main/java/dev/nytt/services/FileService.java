@@ -28,7 +28,7 @@ public class FileService {
 
     public FileEntity createFile(FileDto dto) throws HttpCustomException {
 
-        if(StringUtil.isNullOrEmpty(dto.externalId())){
+        if (StringUtil.isNullOrEmpty(dto.externalId())) {
             throw new HttpCustomException(400, "external id is required");
 
         }
@@ -73,6 +73,21 @@ public class FileService {
             throw new HttpCustomException(e.getStatus(), e.getMessage());
         }
     }
+
+    public void deleteFile(String externalId) throws HttpCustomException {
+        FileEntity fileEntity = FileEntity.find("externalId", externalId).firstResult();
+        if (fileEntity == null) {
+            throw new HttpCustomException(404, "file not found");
+        }
+        try {
+            FileEntity.deleteById(fileEntity.id);
+        } catch (Exception e) {
+            throw new HttpCustomException(500, e.getMessage());
+        }
+
+
+    }
+
 
     private void processFile(String fileName, File file) throws HttpCustomException {
 

@@ -2,6 +2,7 @@ package dev.nytt.controllers;
 
 
 import dev.nytt.dto.FileDto;
+import dev.nytt.dto.ResponsePattern;
 import dev.nytt.exceptions.HttpCustomException;
 import dev.nytt.services.FileService;
 import jakarta.transaction.Transactional;
@@ -52,5 +53,14 @@ public class FileController {
         File file = fileService.getFile(fileId);
         String mimeType = Files.probeContentType(file.toPath());
         return Response.ok(file).type(mimeType).build();
+    }
+
+    @DELETE
+    @Operation(summary = "exclui um arquivo")
+    @Transactional
+    public Response deleteFile(@QueryParam("id") final String fileId) throws HttpCustomException {
+
+        fileService.deleteFile(fileId);
+        return Response.ok(new ResponsePattern("arquivo deletado", 200)).build();
     }
 }
