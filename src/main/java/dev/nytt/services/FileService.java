@@ -1,6 +1,7 @@
 package dev.nytt.services;
 
 import dev.nytt.dto.FileDto;
+import dev.nytt.dto.FileProcessDto;
 import dev.nytt.entities.FileEntity;
 import dev.nytt.exceptions.HttpCustomException;
 import io.netty.util.internal.StringUtil;
@@ -9,6 +10,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import java.io.File;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -46,6 +52,20 @@ public class FileService {
         return fileEntity;
 
 
+    }
+
+    public void createFileByPayload(FileProcessDto fileProcessDto) {
+
+        if (StringUtil.isNullOrEmpty(fileProcessDto.fileId())) {
+            throw new RuntimeException("fileId is required");
+        }
+        LOG.info(String.format("process file by payload : %s", fileProcessDto.fileId()));
+
+        if (!StringUtil.isNullOrEmpty(fileProcessDto.url())) {
+
+        } else if (!StringUtil.isNullOrEmpty(fileProcessDto.data())) {
+            //save file by buffer;
+        }
     }
 
     public FileEntity getFileEntity(String externalId) {
@@ -119,4 +139,12 @@ public class FileService {
 
     }
 
+    private HttpResponse<String> get(String url) throws URISyntaxException, IOException, InterruptedException {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(new URI(url))
+                .GET()
+                .build();
+        return client.send(request, HttpResponse.BodyHandlers.ofString());
+    }
 }
