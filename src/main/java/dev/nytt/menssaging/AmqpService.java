@@ -1,6 +1,5 @@
 package dev.nytt.menssaging;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -13,7 +12,6 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -40,9 +38,10 @@ public class AmqpService {
 
     void onStart(@Observes StartupEvent ev) throws IOException {
 
-        Optional<Channel> channel = rabbitMQClient.connect().openChannel();
-        if (channel.isPresent()) {
-            channel.get().basicConsume(QUEUE, new DefaultConsumer(channel.get()) {
+        Optional<Channel> channelOptional = rabbitMQClient.connect().openChannel();
+        if (channelOptional.isPresent()) {
+            Channel channel = channelOptional.get();
+            channel.basicConsume(QUEUE, new DefaultConsumer(channel) {
                 @Override
                 public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
 
@@ -51,13 +50,14 @@ public class AmqpService {
                     try {
                         FileProcessDto fileProcessDto = objectMapper.readValue(payload, FileProcessDto.class);
                         fileService.createFileByPayload(fileProcessDto);
-                    } catch (JsonProcessingException e) {
+                    } catch (Exception e) {
 
-                        throw new RuntimeException(e);
+                        LOG.warning("file not generated: "+e.getMessage());
 
                     } finally {
                         LOG.info("ack message");
-                        channel.get().basicAck(envelope.getDeliveryTag(), false);
+
+                        channel.basicAck(envelope.getDeliveryTag(), false);
                     }
 
 

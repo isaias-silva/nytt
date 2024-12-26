@@ -9,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 import java.io.File;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -56,14 +57,25 @@ public class FileService {
 
     public void createFileByPayload(FileProcessDto fileProcessDto) {
 
-        if (StringUtil.isNullOrEmpty(fileProcessDto.fileId())) {
-            throw new RuntimeException("fileId is required");
+        if (StringUtil.isNullOrEmpty(fileProcessDto.fileId()) || StringUtil.isNullOrEmpty(fileProcessDto.mimetype())) {
+            throw new RuntimeException("fileId and mimetype are required");
         }
         LOG.info(String.format("process file by payload : %s", fileProcessDto.fileId()));
 
         if (!StringUtil.isNullOrEmpty(fileProcessDto.url())) {
+            try {
+                LOG.info("download of file by url");
+
+                HttpResponse<byte[]> response = requestExternalFile(fileProcessDto.url());
+                byte[] bytes = response.body();
+                String fileName = generateFileName(fileProcessDto.fileId(), fileProcessDto.mimetype());
+                Files.write(getUploadPath().resolve(fileName), bytes);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
 
         } else if (!StringUtil.isNullOrEmpty(fileProcessDto.data())) {
+            LOG.info("download file base64");
             //save file by buffer;
         }
     }
@@ -139,12 +151,14 @@ public class FileService {
 
     }
 
-    private HttpResponse<String> get(String url) throws URISyntaxException, IOException, InterruptedException {
+    private HttpResponse<byte[]> requestExternalFile(String url) throws URISyntaxException, IOException, InterruptedException {
+
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(new URI(url))
                 .GET()
                 .build();
-        return client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
     }
 }
