@@ -6,10 +6,10 @@ import dev.nytt.entities.FileEntity;
 import dev.nytt.exceptions.HttpCustomException;
 import io.netty.util.internal.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 
 import java.io.File;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -19,6 +19,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -55,29 +56,47 @@ public class FileService {
 
     }
 
+    @Transactional
     public void createFileByPayload(FileProcessDto fileProcessDto) {
 
         if (StringUtil.isNullOrEmpty(fileProcessDto.fileId()) || StringUtil.isNullOrEmpty(fileProcessDto.mimetype())) {
             throw new RuntimeException("fileId and mimetype are required");
         }
-        LOG.info(String.format("process file by payload : %s", fileProcessDto.fileId()));
+        FileEntity fileDb = FileEntity.find("externalId", fileProcessDto.fileId()).firstResult();
+        if (fileDb != null) {
+            throw new RuntimeException("external id already in use");
+        }
+        LOG.info(String.format("process file by payload: %s", fileProcessDto.fileId()));
 
-        if (!StringUtil.isNullOrEmpty(fileProcessDto.url())) {
-            try {
-                LOG.info("download of file by url");
 
+        try {
+            byte[] bytes = new byte[0];
+            if (!StringUtil.isNullOrEmpty(fileProcessDto.url())) {
+                LOG.info("download file by link");
                 HttpResponse<byte[]> response = requestExternalFile(fileProcessDto.url());
-                byte[] bytes = response.body();
-                String fileName = generateFileName(fileProcessDto.fileId(), fileProcessDto.mimetype());
-                Files.write(getUploadPath().resolve(fileName), bytes);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+                if (response.statusCode() != 200) {
+                    throw new RuntimeException(String.format("error in request %s", response.statusCode()));
+                }
+                bytes = response.body();
+
+            } else if (!StringUtil.isNullOrEmpty(fileProcessDto.data())) {
+                LOG.info("convert file by base64");
+                bytes = Base64.getDecoder().decode(fileProcessDto.data());
+
             }
 
-        } else if (!StringUtil.isNullOrEmpty(fileProcessDto.data())) {
-            LOG.info("download file base64");
-            //save file by buffer;
+            String fileName = generateFileName(fileProcessDto.fileId(), fileProcessDto.mimetype());
+
+            Files.write(getUploadPath().resolve(fileName), bytes);
+
+            FileEntity fileRegister = new FileEntity(fileProcessDto.fileId(), fileName);
+            FileEntity.persist(fileRegister);
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+
+
     }
 
     public FileEntity getFileEntity(String externalId) {
