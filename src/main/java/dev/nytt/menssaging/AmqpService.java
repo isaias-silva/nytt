@@ -46,7 +46,7 @@ public class AmqpService {
                 public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
 
                     String payload = new String(body, StandardCharsets.UTF_8);
-                    LOG.info(String.format("new file payload in queue: %s", payload));
+                    LOG.info("new file payload in queue");
                     try {
                         FileProcessDto fileProcessDto = objectMapper.readValue(payload, FileProcessDto.class);
                         fileService.createFileByPayload(fileProcessDto);
